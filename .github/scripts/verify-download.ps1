@@ -14,6 +14,8 @@ using System.Security.Cryptography;
 using Newtonsoft.Json.Linq;
 using PCL;
 
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8")]
+
 public static class DownloadSmoke {
     [STAThread]
     public static int Main() {
@@ -70,6 +72,8 @@ public static class DownloadSmoke {
 '@
 $exe = Join-Path $PackagePath 'DownloadSmoke.exe'
 Copy-Item -LiteralPath (Join-Path $PackagePath 'PCL 下载修复版.exe') -Destination (Join-Path $PackagePath 'Plain Craft Launcher 2.exe')
+$configuration = '<configuration><startup><supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.8"/></startup><runtime><AppContextSwitchOverrides value="Switch.System.IO.UseLegacyPathHandling=false;Switch.System.IO.BlockLongPaths=false"/></runtime></configuration>'
+[IO.File]::WriteAllText(($exe + '.config'), $configuration, [Text.UTF8Encoding]::new($true))
 $sourcePath = Join-Path $PackagePath 'DownloadSmoke.cs'
 [IO.File]::WriteAllText($sourcePath, $harness, [Text.UTF8Encoding]::new($true))
 $compiler = Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'csc.exe'

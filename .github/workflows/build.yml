@@ -76,6 +76,7 @@ jobs:
           $exe = "Plain Craft Launcher 2/obj/$env:BUILD_CONFIGURATION/Plain Craft Launcher 2.exe"
           if (!(Test-Path -LiteralPath $exe)) { throw 'Build executable missing' }
           Copy-Item -LiteralPath $exe -Destination 'package/PCL 下载修复版.exe'
+          Copy-Item 'Plain Craft Launcher 2/App.config' -Destination 'package/PCL 下载修复版.exe.config'
           # Keep dependencies beside the executable as well as the embedded resources.
           Get-ChildItem 'Plain Craft Launcher 2/Resources', 'PCLCS/bin' -Filter *.dll | Copy-Item -Destination package -Force
           Copy-Item LICENCE, README.md -Destination package
