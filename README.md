@@ -9,11 +9,31 @@
 
 ## 构建与使用
 
-在 GitHub Actions 的 Build 工作流下载 Release 构建产物，完整解压后运行 `PCL 下载修复版.exe`。需要 Windows 和 .NET Framework 4.8。程序不会自动更新，请从上面的修改版源码仓库手动获取新版本。
+需要 Windows 和 .NET Framework 4.8。
+
+1. 打开修改版的 [Build 工作流](https://github.com/hanzhangsan/PCL/actions/workflows/build.yml?query=branch%3Afix%2Fdisable-updates-enable-mc-download)，选择本分支中成功完成的运行记录。
+2. 在 Artifacts 中下载 `PCL-Download-Fix-Release-提交哈希`，完整解压后运行 `PCL 下载修复版.exe`。下载 Actions 产物可能需要登录 GitHub。
+3. 保留同目录中的 DLL、`PCL 下载修复版.exe.config`、许可及说明文件；可根据 `SHA256.txt` 校验程序。
+
+程序不会自动更新，请从上面的修改版源码仓库手动获取新版本。Minecraft 版本列表刷新、游戏更新提示和游戏文件下载仍然保留。这里只提供修改版构建说明，下方上游介绍中的下载链接指向原作者发布的程序。
 
 微软登录需要自行申请 Client ID，并在运行前配置环境变量 `PCL_MS_CLIENT_ID`。CurseForge 功能类似，需要 `PCL_CURSEFORGE_API_KEY`；下载原版 Minecraft 不需要这两个值。工作流不嵌入仓库机密。
 
 修改版源码、原 LICENCE、依赖许可及构建提交信息随程序包提供。Actions 编译成功不等于已完成游戏下载测试；实际验证结果以工作流日志和交付说明为准。
+
+## 从源码构建与验证
+
+使用 Visual Studio 2022 的 MSBuild、.NET SDK 9（C# 13）和 .NET Framework 4.8 开发包，在仓库根目录运行：
+
+```powershell
+git submodule update --init --recursive
+dotnet restore PCLCS/PCLCS.csproj
+msbuild "Plain Craft Launcher 2/Plain Craft Launcher 2.vbproj" -p:Configuration=Release
+```
+
+`MeloongCore` 使用仓库记录的固定提交，其 Apache 2.0 许可单独保留，不改变 PCL 自身的许可。
+
+Build 工作流会编译 Debug 和 Release，并验证 `--update` 在没有其他参数时直接退出、不会替换程序。Release 另调用 PCL 原版下载加载器安装 Minecraft 1.20.1，下载客户端、支持库和资源，并检查客户端、资源索引及全部资源的 SHA-1。只有该下载步骤成功后才上传本次 Release 产物。此测试不涵盖微软登录、实际启动游戏或所有第三方模组加载器。
 
 ---
 
