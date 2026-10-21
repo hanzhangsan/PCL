@@ -99,6 +99,16 @@ jobs:
           }
           if ($process.ExitCode -ne 5) { throw "Unexpected exit code: $($process.ExitCode)" }
 
+      - name: Verify vanilla Minecraft download with PCL loaders
+        if: matrix.configuration == 'Release'
+        timeout-minutes: 15
+        shell: powershell
+        run: |
+          # Test in a separate directory so test data never enters the package.
+          New-Item -ItemType Directory -Path download-smoke | Out-Null
+          Copy-Item package/*.exe, package/*.dll -Destination download-smoke
+          & .github/scripts/verify-download.ps1 -PackagePath download-smoke
+
       - name: Upload build
         uses: actions/upload-artifact@v7
         with:
