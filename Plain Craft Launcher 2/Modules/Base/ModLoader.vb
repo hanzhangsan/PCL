@@ -554,7 +554,7 @@ Public Module ModLoader
             For Each Loader In Loaders
                 Loader.Cancel()
             Next
-            FrmMain.BtnExtraDownload.ShowRefresh()
+            FrmMain?.BtnExtraDownload?.ShowRefresh()
         End Sub
 
         ''' <summary>
@@ -638,7 +638,7 @@ Restart:
                 '顺利完成，贼棒
                 RaisePreviewFinish()
                 State = LoadState.Finished
-                FrmMain.BtnExtraDownload.ShowRefresh()
+                FrmMain?.BtnExtraDownload?.ShowRefresh()
             End If
         End Sub
 

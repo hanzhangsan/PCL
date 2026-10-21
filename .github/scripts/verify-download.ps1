@@ -22,6 +22,8 @@ public static class DownloadSmoke {
         try {
             var app = new System.Windows.Application();
             MeloongCore.Main.Init("PCLDownloadSmoke");
+            MeloongCore.Logger.Instance = new ConsoleLogger();
+            MeloongCore.Logger.Instance.MinLevel = MeloongCore.LogLevel.Warn;
             string root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "download-test");
             Directory.CreateDirectory(root);
             ModBase.PathTemp = Path.Combine(root, "cache") + "\\";
@@ -42,7 +44,20 @@ public static class DownloadSmoke {
             var factory = typeof(ModDownloadLib).GetMethod("McDownloadClientLoader", BindingFlags.NonPublic | BindingFlags.Static);
             var tasks = (List<ModLoader.LoaderBase>)factory.Invoke(null, new object[] { version, (string)entry["url"], folder });
             var install = new ModLoader.LoaderCombo<string>("Vanilla download smoke test", tasks);
-            install.WaitForExitTime(600000, null, "Vanilla install timed out");
+            install.Start();
+            DateTime deadline = DateTime.UtcNow.AddMinutes(10);
+            DateTime nextLog = DateTime.UtcNow;
+            while (install.State == ModBase.LoadState.Loading) {
+                // PCL loaders may synchronously request work on the UI dispatcher.
+                app.Dispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Background, new Action(delegate {}));
+                if (DateTime.UtcNow >= deadline) throw new TimeoutException("Vanilla install timed out");
+                if (DateTime.UtcNow >= nextLog) {
+                    Console.WriteLine("Download progress: " + install.Progress.ToString("P1") + "; remaining files: " + ModNet.NetManager.FileRemain);
+                    nextLog = DateTime.UtcNow.AddSeconds(15);
+                }
+                System.Threading.Thread.Sleep(100);
+            }
+            if (install.State != ModBase.LoadState.Finished) throw install.Error ?? new Exception("Download did not finish");
             var json = JObject.Parse(File.ReadAllText(folder + version + ".json"));
             Verify(folder + version + ".jar", (string)json["downloads"]["client"]["sha1"]);
             string indexPath = ModMinecraft.McFolderSelected + "assets\\indexes\\" + (string)json["assetIndex"]["id"] + ".json";
@@ -66,6 +81,11 @@ public static class DownloadSmoke {
         using (var sha = SHA1.Create()) {
             string actual = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
             if (actual != expected) throw new Exception("SHA1 mismatch: " + path);
+        }
+    }
+    sealed class ConsoleLogger : MeloongCore.BaseLogger {
+        public override void Output(MeloongCore.BaseLogger.LogEntry entry) {
+            Console.WriteLine(entry.message);
         }
     }
 }
