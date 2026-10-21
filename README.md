@@ -33,7 +33,9 @@ msbuild "Plain Craft Launcher 2/Plain Craft Launcher 2.vbproj" -p:Configuration=
 
 `MeloongCore` 使用仓库记录的固定提交，其 Apache 2.0 许可单独保留，不改变 PCL 自身的许可。
 
-Build 工作流会编译 Debug 和 Release，并验证 `--update` 在没有其他参数时直接退出、不会替换程序。Release 另调用 PCL 原版下载加载器安装 Minecraft 1.20.1，下载客户端、支持库和资源，并检查客户端、资源索引及全部资源的 SHA-1。只有该下载步骤成功后才上传本次 Release 产物。此测试不涵盖微软登录、实际启动游戏或所有第三方模组加载器。
+Build 工作流只编译 Debug 和 Release、打包，并验证 `--update` 在没有其他参数时直接退出、不会替换程序；CI/CD 不执行 Minecraft 下载测试。
+
+`.github/scripts/verify-download.ps1` 保留为可选的手动下载验证工具，不由工作流调用。它通过 PCL 原版下载加载器安装 Minecraft 1.20.1，下载客户端、支持库和资源，并检查客户端、资源索引及全部资源的 SHA-1。此工具不涵盖微软登录、实际启动游戏或所有第三方模组加载器。
 
 ---
 
