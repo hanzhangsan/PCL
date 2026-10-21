@@ -39,8 +39,8 @@ Public Class Application
             '检查参数调用
             If e.Args.Length > 0 Then
                 If e.Args(0) = "--update" Then
-                    '自动更新
-                    UpdateReplace(e.Args(1), e.Args(2).Trim(""""), e.Args(3).Trim(""""), e.Args(4))
+                    '第三方修改版不接受更新替换请求，也不读取更新参数。
+                    Logger.Info("PCL 下载修复版已禁用启动器更新，忽略 --update 请求")
                     Environment.Exit(ProcessReturnValues.TaskDone)
                 ElseIf e.Args(0) = "--gpu" Then
                     '调整显卡设置

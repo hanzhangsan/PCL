@@ -3,67 +3,105 @@ on:
   push:
     paths:
       - 'Plain Craft Launcher 2/**'
-      - '.github/workflows/**'
+      - 'PCLCS/**'
+      - 'MeloongCore'
+      - '.gitmodules'
+      - '.github/**'
+      - 'README.md'
+      - 'LICENCE'
   pull_request:
     paths:
       - 'Plain Craft Launcher 2/**'
-      - '.github/workflows/**'
+      - 'PCLCS/**'
+      - 'MeloongCore'
+      - '.gitmodules'
+      - '.github/**'
+      - 'README.md'
+      - 'LICENCE'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Build
-    runs-on: windows-latest
-    strategy:  
-       matrix:  
-         configuration: [Debug, Release]
-
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
     steps:
+      - name: Checkout source and pinned dependencies
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
-    - name: Checkout
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 1
-        submodules: true
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
 
-    - name: Set Describe
-      shell: bash
-      run: |
-          describe=`git describe --tags --always`
-          echo "describe=$describe" >> $GITHUB_ENV
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
 
-    - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v3
-      with:
-        msbuild-architecture: x64
-    
-    - name: Update Help
-      run:  |
-        Set-Location ..
-        git clone https://github.com/LTCatt/PCL2Help.git -b master --single-branch --depth 1
-        Set-Location PCL2Help
-        Remove-Item -Path *.* -Recurse -Force
-        Compress-Archive -Path .\* -DestinationPath .\Help.zip
-        Copy-Item -Path .\Help.zip -Destination "${{ GITHUB.WORKSPACE }}\Plain Craft Launcher 2\Resources\Help.zip" -Force
-        Set-Location ..
-        Remove-Item PCL2Help -Recurse -Force
-        Set-Location ${{ GITHUB.WORKSPACE }}
+      - name: Check .NET Framework 4.8 targeting pack
+        shell: pwsh
+        run: |
+          $reference = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\mscorlib.dll"
+          if (!(Test-Path -LiteralPath $reference)) { throw '.NET Framework 4.8 targeting pack is required' }
 
+      - name: Stamp source revision
+        shell: pwsh
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          $path = 'Plain Craft Launcher 2/Modules/Base/ModBase.vb'
+          $source = [IO.File]::ReadAllText($path)
+          [IO.File]::WriteAllText($path, $source.Replace('Public Const CommitHash As String = ""', ('Public Const CommitHash As String = "' + $env:BUILD_COMMIT + '"')), [Text.UTF8Encoding]::new($true))
 
-    - name: Replace
-      run: |
-        (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")', 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "${{ secrets.CLIENT_ID }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
-        (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")', 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "${{ secrets.CURSEFORGE_API_KEY }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
-        (gc "Plain Craft Launcher 2\Modules\Base\ModBase.vb") -replace 'Public Const CommitHash As String = ""', 'Public Const CommitHash As String = "${{ github.sha }}"' | Out-File "Plain Craft Launcher 2\Modules\Base\ModBase.vb"
-        
-    - name: Restore NuGet Packages
-      run: dotnet restore PCLCS\PCLCS.csproj
+      - name: Restore dependencies
+        run: dotnet restore PCLCS/PCLCS.csproj
 
-    - name: Build
-      run: msbuild "Plain Craft Launcher 2\Plain Craft Launcher 2.vbproj" -p:Configuration=${{ matrix.configuration }}
+      - name: Build
+        run: msbuild "Plain Craft Launcher 2/Plain Craft Launcher 2.vbproj" -p:Configuration=${{ matrix.configuration }} -verbosity:minimal
 
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ matrix.configuration }} ${{ env.describe }}
-        path: Plain Craft Launcher 2\obj\${{ matrix.configuration }}\Plain Craft Launcher 2.exe
+      - name: Package program, source, and licenses
+        shell: pwsh
+        env:
+          BUILD_CONFIGURATION: ${{ matrix.configuration }}
+        run: |
+          New-Item -ItemType Directory -Path package | Out-Null
+          $exe = "Plain Craft Launcher 2/obj/$env:BUILD_CONFIGURATION/Plain Craft Launcher 2.exe"
+          if (!(Test-Path -LiteralPath $exe)) { throw 'Build executable missing' }
+          Copy-Item -LiteralPath $exe -Destination 'package/PCL 下载修复版.exe'
+          # Keep dependencies beside the executable as well as the embedded resources.
+          Get-ChildItem 'Plain Craft Launcher 2/Resources', 'PCLCS/bin' -Filter *.dll | Copy-Item -Destination package -Force
+          Copy-Item LICENCE, README.md -Destination package
+          Copy-Item MeloongCore/LICENSE.txt -Destination package/MeloongCore-LICENSE.txt
+          Get-ChildItem MeloongCore -Filter '*NOTICE*' | Copy-Item -Destination package
+          git archive --format=zip --output=package/Source.zip HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Source archive failed' }
+          git -C MeloongCore archive --format=zip --output=../package/MeloongCore-Source.zip HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency source archive failed' }
+          @("Source: https://github.com/$env:GITHUB_REPOSITORY", "Commit: $env:GITHUB_SHA", "Configuration: $env:BUILD_CONFIGURATION", 'Third-party modification of PCL; upstream LICENCE applies.') | Set-Content package/BUILD.txt -Encoding utf8
+          Get-FileHash 'package/PCL 下载修复版.exe' -Algorithm SHA256 | Format-List | Out-String | Set-Content package/SHA256.txt
+
+      - name: Verify disabled update command
+        shell: pwsh
+        run: |
+          # Missing update arguments must be harmless; no replacement is attempted.
+          $process = Start-Process -FilePath (Resolve-Path 'package/PCL 下载修复版.exe') -ArgumentList '--update' -WorkingDirectory (Resolve-Path package) -WindowStyle Hidden -PassThru
+          if (!$process.WaitForExit(30000)) {
+            Stop-Process -Id $process.Id
+            throw 'Disabled update command did not exit'
+          }
+          if ($process.ExitCode -ne 5) { throw "Unexpected exit code: $($process.ExitCode)" }
+
+      - name: Upload build
+        uses: actions/upload-artifact@v7
+        with:
+          name: PCL-Download-Fix-${{ matrix.configuration }}-${{ github.sha }}
+          path: package/
+          if-no-files-found: error

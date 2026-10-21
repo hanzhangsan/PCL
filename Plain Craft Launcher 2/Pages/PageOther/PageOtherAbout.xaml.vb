@@ -28,7 +28,7 @@ Public Class PageOtherAbout
         GeneratePotatoCode()
     End Sub
     Private Sub BtnAboutUpdate_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnAboutUpdate.Click
-        UpdateCheckByButton()
+        OpenWebsite("https://github.com/hanzhangsan/PCL/tree/fix/disable-updates-enable-mc-download")
     End Sub
 
 End Class

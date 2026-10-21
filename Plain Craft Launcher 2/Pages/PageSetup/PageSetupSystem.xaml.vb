@@ -10,7 +10,7 @@ Public Class PageSetupSystem
             PanDonate.Visibility = Visibility.Collapsed
         Else
             PanDonate.Visibility = Visibility.Visible
-            ItemSystemUpdateDownload.Content = "在有新版本时自动下载（更新快照版前需要先输入土豆码）"
+            ItemSystemUpdateDownload.Content = "此修改版已禁用启动器更新"
         End If
 
         '非重复加载部分
