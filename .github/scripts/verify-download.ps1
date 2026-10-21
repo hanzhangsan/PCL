@@ -1,10 +1,10 @@
-﻿param([Parameter(Mandatory=$true)][string]$PackagePath)
+﻿param([Parameter(Mandatory=$true)][string]$PackagePath, [switch]$CompileOnly)
 $ErrorActionPreference = 'Stop'
 $PackagePath = (Resolve-Path -LiteralPath $PackagePath).Path
 # Run with Windows PowerShell, matching the application's .NET Framework runtime.
-$references = @('System.dll', 'System.Core.dll', 'System.Net.Http.dll', 'WindowsBase.dll', 'PresentationCore.dll', 'PresentationFramework.dll', 'System.Xaml.dll', 'Microsoft.VisualBasic.dll')
-$references += @('PCL 下载修复版.exe', 'PCLCS.dll', 'MeloongCore.dll', 'MeloongCore.Wpf.dll', 'Newtonsoft.Json.dll') | ForEach-Object { Join-Path $PackagePath $_ }
-$references += Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'Facades/netstandard.dll'
+$references = @('System', 'System.Core', 'System.Net.Http', 'WindowsBase', 'PresentationCore', 'PresentationFramework', 'System.Xaml', 'Microsoft.VisualBasic') | ForEach-Object { [Reflection.Assembly]::LoadWithPartialName($_).Location }
+$references += @('Plain Craft Launcher 2.exe', 'PCLCS.dll', 'MeloongCore.dll', 'MeloongCore.Wpf.dll', 'Newtonsoft.Json.dll') | ForEach-Object { Join-Path $PackagePath $_ }
+$references += [Reflection.Assembly]::LoadWithPartialName('netstandard').Location
 $harness = @'
 using System;
 using System.IO;
@@ -70,6 +70,15 @@ public static class DownloadSmoke {
 '@
 $exe = Join-Path $PackagePath 'DownloadSmoke.exe'
 Copy-Item -LiteralPath (Join-Path $PackagePath 'PCL 下载修复版.exe') -Destination (Join-Path $PackagePath 'Plain Craft Launcher 2.exe')
-Add-Type -TypeDefinition $harness -ReferencedAssemblies $references -OutputAssembly $exe -OutputType ConsoleApplication
-& $exe
-if ($LASTEXITCODE -ne 0) { throw "PCL download integration test failed: $LASTEXITCODE" }
+$sourcePath = Join-Path $PackagePath 'DownloadSmoke.cs'
+[IO.File]::WriteAllText($sourcePath, $harness, [Text.UTF8Encoding]::new($true))
+$compiler = Join-Path ([Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()) 'csc.exe'
+$arguments = @('/nologo', '/noconfig', '/target:exe', ('/out:' + $exe))
+$arguments += $references | ForEach-Object { '/reference:' + $_ }
+$arguments += $sourcePath
+& $compiler $arguments
+if ($LASTEXITCODE -ne 0) { throw 'Download harness compilation failed' }
+if (!$CompileOnly) {
+    & $exe
+    if ($LASTEXITCODE -ne 0) { throw "PCL download integration test failed: $LASTEXITCODE" }
+}
