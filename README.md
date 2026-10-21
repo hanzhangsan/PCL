@@ -3,7 +3,7 @@
 本项目是第三方基于 [Plain Craft Launcher（PCL）](https://github.com/Meloong-Git/PCL) 独立修改的产物。原作者为龙腾猫跃；本修改版不代表原作者或官方发布。
 
 - [支持原作者龙腾猫跃](https://meloong.com/afd/a/LTCat)
-- [修改版源码](https://github.com/hanzhangsan/PCL/tree/fix/disable-updates-enable-mc-download)
+- [修改版源码](https://github.com/hanzhangsan/PCL/tree/main)
 - 保留并遵循原仓库的 [LICENCE](LICENCE) 及其链接的《PCL 分发有限许可》和《PCL 存储库合理使用指南》；不将本项目重新许可为 MIT、GPL 或 CC BY-SA。
 - 修改内容：恢复 Minecraft 下载入口，禁用启动器更新，明确第三方修改版标识。保留蓝色主题、原作者署名和赞助链接，以及 `McLaunchPrecheck` 中的正版购买与赞助劝导。
 
@@ -11,8 +11,8 @@
 
 需要 Windows 和 .NET Framework 4.8。
 
-1. 打开修改版的 [Build 工作流](https://github.com/hanzhangsan/PCL/actions/workflows/build.yml?query=branch%3Afix%2Fdisable-updates-enable-mc-download)，选择本分支中成功完成的运行记录。
-2. 在 Artifacts 中下载 `PCL-Download-Fix-Release-提交哈希`，完整解压后运行 `PCL 下载修复版.exe`。下载 Actions 产物可能需要登录 GitHub。
+1. 打开修改版的 [Releases 下载页](https://github.com/hanzhangsan/PCL/releases/latest)，下载 `PCL-Download-Fix-Release.zip`。
+2. 完整解压后运行 `PCL 下载修复版.exe`。开发构建也可从 [main 分支的 Build 工作流](https://github.com/hanzhangsan/PCL/actions/workflows/build.yml?query=branch%3Amain) 中下载 Release 产物，下载 Actions 产物可能需要登录 GitHub。
 3. 保留同目录中的 DLL、`PCL 下载修复版.exe.config`、许可及说明文件；可根据 `SHA256.txt` 校验程序。
 
 程序不会自动更新，请从上面的修改版源码仓库手动获取新版本。Minecraft 版本列表刷新、游戏更新提示和游戏文件下载仍然保留。这里只提供修改版构建说明，下方上游介绍中的下载链接指向原作者发布的程序。
