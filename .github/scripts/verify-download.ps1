@@ -70,9 +70,13 @@ public static class DownloadSmoke {
                 count++;
             }
             Console.WriteLine("PASS: PCL vanilla loader installed " + version + "; client, asset index, " + count + " assets verified with SHA1.");
+            // PCL's download manager owns persistent foreground threads.
+            // This standalone test must terminate them after verification.
+            Environment.Exit(0);
             return 0;
         } catch (Exception ex) {
             Console.Error.WriteLine(ex.ToString());
+            Environment.Exit(1);
             return 1;
         }
     }
